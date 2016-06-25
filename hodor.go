@@ -2,17 +2,17 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 
-	"github.com/mrd0ll4r/tbotapi/examples/boilerplate"
-
 	"github.com/mrd0ll4r/tbotapi"
+	"github.com/mrd0ll4r/tbotapi/examples/boilerplate"
 )
 
 func main() {
 	apiToken := os.Getenv("HODOR_TOKEN")
 	if len(apiToken) == 0 {
-		fmt.Println("MAIN", "You need to set BOT_TOKEN environment variable")
+		fmt.Println("MAIN", "You need to set HODOR_TOKEN environment variable")
 		os.Exit(1)
 	}
 
@@ -34,7 +34,7 @@ func main() {
 			fmt.Printf("<-%d, From:\t%s, Text: %s \n", msg.ID, msg.Chat, *msg.Text)
 
 			// Now simply echo that back.
-			outMsg, err := api.NewOutgoingMessage(tbotapi.NewRecipientFromChat(msg.Chat), "HODOR").Send()
+			outMsg, err := api.NewOutgoingMessage(tbotapi.NewRecipientFromChat(msg.Chat), sayHodor(rand.Intn(5))).Send()
 
 			if err != nil {
 				fmt.Printf("Error sending: %s\n", err)
@@ -52,4 +52,13 @@ func main() {
 
 	// Run the bot, this will block.
 	boilerplate.RunBot(apiToken, updateFunc, "Echo", "Echoes messages back")
+
+	// fmt.Printf(sayHodor(rand.Intn(5)))
+}
+func sayHodor(times int) string {
+	var out = "HODOR"
+	for i := 0; i < times; i++ {
+		out += " HODOR"
+	}
+	return out
 }
