@@ -34,7 +34,7 @@ func main() {
 			fmt.Printf("<-%d, From:\t%s, Text: %s \n", msg.ID, msg.Chat, *msg.Text)
 
 			// Now simply echo that back.
-			outMsg, err := api.NewOutgoingMessage(tbotapi.NewRecipientFromChat(msg.Chat), *msg.Text).Send()
+			outMsg, err := api.NewOutgoingMessage(tbotapi.NewRecipientFromChat(msg.Chat), "HODOR").Send()
 
 			if err != nil {
 				fmt.Printf("Error sending: %s\n", err)
