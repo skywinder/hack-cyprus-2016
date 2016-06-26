@@ -76,7 +76,7 @@ func handleTesselRequest(conn net.Conn) {
 	fmt.Println("Message received.", reqLen)
 	conn.Write([]byte("Message received."))
 	// Close the connection when you're done with it.
-	conn.Close()
+	//conn.Close()
 }
 
 func telegramListener(bot *tgbotapi.BotAPI, a chan string, b chan int64) {
