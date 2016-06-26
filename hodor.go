@@ -48,7 +48,8 @@ func sayHodor(times int) string {
 }
 
 func tesselListener(a chan string) {
-	ln, err := net.Listen("tcp", ":8088")
+	port := os.Getenv("PORT")
+	ln, err := net.Listen("tcp", port)
 	if err != nil {
 		fmt.Println(err)
 	}
