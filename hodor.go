@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
+	"net"
 	"os"
 
-	"github.com/mrd0ll4r/tbotapi"
-	"github.com/mrd0ll4r/tbotapi/examples/boilerplate"
+	"github.com/go-telegram-bot-api/telegram-bot-api"
+	//"github.com/mrd0ll4r/tbotapi"
+	//"github.com/mrd0ll4r/tbotapi/examples/boilerplate"
 )
 
 func main() {
@@ -16,42 +19,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	updateFunc := func(update tbotapi.Update, api *tbotapi.TelegramBotAPI) {
-		switch update.Type() {
-		case tbotapi.MessageUpdate:
-			msg := update.Message
-			typ := msg.Type()
-			if typ != tbotapi.TextMessage {
-				// Ignore non-text messages for now.
-				fmt.Println("Ignoring non-text message")
-				return
-			}
-			// Note: Bots cannot receive from channels, at least no text messages. So we don't have to distinguish anything here.
-
-			// Display the incoming message.
-			// msg.Chat implements fmt.Stringer, so it'll display nicely.
-			// We know it's a text message, so we can safely use the Message.Text pointer.
-			fmt.Printf("<-%d, From:\t%s, Text: %s \n", msg.ID, msg.Chat, *msg.Text)
-
-			// Now simply echo that back.
-			outMsg, err := api.NewOutgoingMessage(tbotapi.NewRecipientFromChat(msg.Chat), sayHodor(rand.Intn(5))).Send()
-
-			if err != nil {
-				fmt.Printf("Error sending: %s\n", err)
-				return
-			}
-			fmt.Printf("->%d, To:\t%s, Text: %s\n", outMsg.Message.ID, outMsg.Message.Chat, *outMsg.Message.Text)
-		case tbotapi.InlineQueryUpdate:
-			fmt.Println("Ignoring received inline query: ", update.InlineQuery.Query)
-		case tbotapi.ChosenInlineResultUpdate:
-			fmt.Println("Ignoring chosen inline query result (ID): ", update.ChosenInlineResult.ID)
-		default:
-			fmt.Printf("Ignoring unknown Update type.")
-		}
+	bot, err := tgbotapi.NewBotAPI(apiToken)
+	if err != nil {
+		log.Panic(err)
 	}
 
-	// Run the bot, this will block.
-	boilerplate.RunBot(apiToken, updateFunc, "Echo", "Echoes messages back")
+	bot.Debug = true
+	log.Printf("Authorized on account %s", bot.Self.UserName)
+
+	var a chan string = make(chan string)
+	var b chan int64 = make(chan int64)
+
+	go tesselListener(a)
+	go telegramListener(bot, a, b)
+	go telegramSender(bot, a, b)
+
+	var input string
+	fmt.Scanln(&input)
 
 	// fmt.Printf(sayHodor(rand.Intn(5)))
 }
@@ -61,4 +45,79 @@ func sayHodor(times int) string {
 		out += " HODOR"
 	}
 	return out
+}
+
+func tesselListener(a chan string) {
+	ln, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		fmt.Println(err)
+	}
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			fmt.Println(err)
+		}
+		// handleTesselRequest(net.Conn)
+		a <- "ping"
+		conn.Close()
+	}
+}
+
+// func handleTesselRequest(conn net.Conn) {
+//   // Make a buffer to hold incoming data.
+//   buf := make([]byte, 1024)
+//   // Read the incoming connection into the buffer.
+//   reqLen, err := conn.Read(buf)
+//   if err != nil {
+//     fmt.Println("Error reading:", err.Error())
+//   }
+//   // Send a response back to person contacting us.
+//   conn.Write([]byte("Message received."))
+//   // Close the connection when you're done with it.
+//   conn.Close()
+// }
+
+func telegramListener(bot *tgbotapi.BotAPI, a chan string, b chan int64) {
+
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = 60
+
+	updates, err := bot.GetUpdatesChan(u)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	for update := range updates {
+		if update.Message == nil {
+			continue
+		}
+
+		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, sayHodor(rand.Intn(5)))
+		msg.ReplyToMessageID = update.Message.MessageID
+
+		bot.Send(msg)
+		b <- update.Message.Chat.ID
+	}
+}
+func telegramSender(bot *tgbotapi.BotAPI, a chan string, b chan int64) {
+	var m = make(map[int64]int64)
+	for {
+		select {
+		case CommandToSend := <-a:
+			fmt.Println("CommandToSend=", CommandToSend)
+			for key, val := range m {
+				msg := tgbotapi.NewMessage(key, sayHodor(rand.Intn(5)))
+				//msg := tgbotapi.NewMessage(key, fmt.Sprintf("Key= %s", key))
+
+				bot.Send(msg)
+
+				fmt.Println("Send msg to Chat Id=", key, "val=", val)
+			}
+		case NewChatId := <-b:
+			fmt.Println("NewChatID", NewChatId)
+			m[NewChatId] = NewChatId
+		}
+	}
 }
