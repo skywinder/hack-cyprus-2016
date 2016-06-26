@@ -57,25 +57,27 @@ func tesselListener(a chan string) {
 		if err != nil {
 			fmt.Println(err)
 		}
-		// handleTesselRequest(net.Conn)
+		handleTesselRequest(conn)
 		a <- "ping"
 		conn.Close()
 	}
 }
 
-// func handleTesselRequest(conn net.Conn) {
-//   // Make a buffer to hold incoming data.
-//   buf := make([]byte, 1024)
-//   // Read the incoming connection into the buffer.
-//   reqLen, err := conn.Read(buf)
-//   if err != nil {
-//     fmt.Println("Error reading:", err.Error())
-//   }
-//   // Send a response back to person contacting us.
-//   conn.Write([]byte("Message received."))
-//   // Close the connection when you're done with it.
-//   conn.Close()
-// }
+func handleTesselRequest(conn net.Conn) {
+	// Make a buffer to hold incoming data.
+	buf := make([]byte, 1024)
+	// Read the incoming connection into the buffer.
+	reqLen, err := conn.Read(buf)
+
+	if err != nil {
+		fmt.Println("Error reading:", err.Error())
+	}
+	// Send a response back to person contacting us.
+	fmt.Println("Message received.", reqLen)
+	conn.Write([]byte("Message received."))
+	// Close the connection when you're done with it.
+	conn.Close()
+}
 
 func telegramListener(bot *tgbotapi.BotAPI, a chan string, b chan int64) {
 
